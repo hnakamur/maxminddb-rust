@@ -33,6 +33,12 @@ pub fn bench_maxminddb(ips: &[IpAddr], reader: &maxminddb::Reader<Vec<u8>>) {
     }
 }
 
+pub fn bench_maxminddb_country(ips: &[IpAddr], reader: &maxminddb::Reader<Vec<u8>>) {
+    for ip in ips.iter() {
+        let _ = reader.lookup::<geoip2::Country>(*ip);
+    }
+}
+
 // Using rayon for parallel execution
 pub fn bench_par_maxminddb(ips: &[IpAddr], reader: &maxminddb::Reader<Vec<u8>>) {
     ips.par_iter().for_each(|ip| {
@@ -40,19 +46,33 @@ pub fn bench_par_maxminddb(ips: &[IpAddr], reader: &maxminddb::Reader<Vec<u8>>) 
     });
 }
 
+pub fn bench_par_maxminddb_country(ips: &[IpAddr], reader: &maxminddb::Reader<Vec<u8>>) {
+    ips.par_iter().for_each(|ip| {
+        let _ = reader.lookup::<geoip2::Country>(*ip);
+    });
+}
+
 pub fn criterion_benchmark(c: &mut Criterion) {
     let ips = generate_ipv4(100);
     let reader = maxminddb::Reader::open_readfile("GeoLite2-City.mmdb").unwrap();
+    let country_reader = maxminddb::Reader::open_readfile("GeoLite2-Country.mmdb").unwrap();
 
     c.bench_function("maxminddb", |b| b.iter(|| bench_maxminddb(&ips, &reader)));
+    c.bench_function("maxminddb_country", |b| {
+        b.iter(|| bench_maxminddb_country(&ips, &country_reader))
+    });
 }
 
 pub fn criterion_par_benchmark(c: &mut Criterion) {
     let ips = generate_ipv4(100);
     let reader = maxminddb::Reader::open_readfile("GeoLite2-City.mmdb").unwrap();
+    let country_reader = maxminddb::Reader::open_readfile("GeoLite2-Country.mmdb").unwrap();
 
     c.bench_function("maxminddb_par", |b| {
         b.iter(|| bench_par_maxminddb(&ips, &reader))
+    });
+    c.bench_function("maxminddb_par_country", |b| {
+        b.iter(|| bench_par_maxminddb_country(&ips, &country_reader))
     });
 }
 
